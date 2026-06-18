@@ -99,6 +99,6 @@ if __name__ == "__main__":
 
     result3 = judge_answer(q3, a3, "hr")
     print(f"Q: {q3}")
-    print(f"Score: {result3.get('overall_score')}/10")
+    print(f"Score: {result3.get('overall_score')}/10") 
     print(f"Feedback: {result3.get('feedback')}")
-    print(f"Improvement: {result3.get('improvement')}\n")
+    print(f"Improvement: {result3.get('improvement')}\n")   
