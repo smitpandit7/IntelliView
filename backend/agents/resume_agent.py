@@ -1,26 +1,30 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
 load_dotenv()
 
-def run_resume_agent(resume_json: dict, jd_json: dict) -> str:
+def run_resume_agent(resume_json: dict, jd_json: dict, experience_level: str) -> dict:
     llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.3)
 
     prompt = f"""
-    You are an expert interview planner.json
+    You are an expert interview planner
 
     Candiate Profile:
     - Name: {resume_json.get('name', 'N/A')}
     - Skills: {', '.join(resume_json.get('skills', []))}
     - Projects: {', '.join([proj['name'] for proj in resume_json.get('projects', [])])}
     - Experience: {', '.join([exp['role'] for exp in resume_json.get('experience', [])])}
-    - Level: {resume_json.get('level', 'N/A')}
+    - Level: {experience_level}
 
     Job Description:
     - Required Skills: {', '.join(jd_json.get('required_skills', []))}
     - Nice to Have: {', '.join(jd_json.get('nice_to_have', []))}
     - Role: {jd_json.get('role', 'N/A')}
+    - Experience Level: {experience_level}
 
     Your job:
     1. Find which required skills the candidate HAS
@@ -36,7 +40,7 @@ def run_resume_agent(resume_json: dict, jd_json: dict) -> str:
       "missing_skills": [],
       "relevant_projects": [],
       "focus_areas": [],
-      "difficulty": "easy|medium|hard",
+      "difficulty": "",
       "question_plan": {{
         "technical_count": 6,
         "hr_count": 3,
@@ -74,5 +78,5 @@ if __name__ == "__main__":
     
     jd_json = parse_jd(jd_text)
     
-    plan = run_resume_agent(resume_json, jd_json, "fresher")
+    plan = run_resume_agent(resume_json, jd_json, "Fresher")
     print(json.dumps(plan, indent=2))
