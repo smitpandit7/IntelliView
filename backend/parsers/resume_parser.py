@@ -12,8 +12,8 @@ def extract_text_from_pdf(pdf_path: str) -> str:
         text += page.get_text()
     return text.strip()
 
-def parse_resume(pdf_path: str) -> dict:
-    raw_text = extract_text_from_pdf(pdf_path)
+def parse_resume_text(raw_text: str) -> dict:
+    """Takes already-extracted resume text, returns structured JSON."""
     llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
 
     prompt = f"""
@@ -53,6 +53,10 @@ def parse_resume(pdf_path: str) -> dict:
         match = re.search(r'\{.*\}', response.content, re.DOTALL)
         return json.loads(match.group(0)) if match else {} 
     
+def parse_resume(pdf_path: str) -> dict:
+    """Takes a PDF path — used for standalone testing of this file."""
+    raw_text = extract_text_from_pdf(pdf_path)
+    return parse_resume_text(raw_text)
 # Quick test
 if __name__ == "__main__":
     result = parse_resume("sample_resume.pdf")

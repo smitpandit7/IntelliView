@@ -13,7 +13,7 @@ class InterviewState(TypedDict):
     jd_json: dict
 
     # RAG
-    vector_store: object
+    vectorstore: object
 
     # Interview Plan from resume agent
     interview_plan: dict
