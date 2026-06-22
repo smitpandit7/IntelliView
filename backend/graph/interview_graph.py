@@ -247,7 +247,7 @@ if __name__ == "__main__":
     state["current_answer"] = "I used ChromaDB with BGE embeddings to store resume chunks and retrieve relevant context for each interview question."
 
     # Continue graph from evaluate node
-    state = app.invoke(state)
+    state = app.invoke(state)  
 
     print(f"\n[GRAPH] Questions asked so far: {state['question_count']}")
     print(f"[GRAPH] Scores so far: {[s['overall_score'] for s in state['answer_scores']]}")
