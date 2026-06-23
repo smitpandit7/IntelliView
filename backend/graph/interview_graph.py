@@ -216,7 +216,7 @@ if __name__ == "__main__":
     from langgraph.types import Command
     from parsers.resume_parser import extract_text_from_pdf
 
-    resume_text = extract_text_from_pdf("backend/sample_resume.pdf")
+    resume_text = extract_text_from_pdf("sample_resume.pdf")
 
     jd_text = """
     AI Engineer role requiring LangChain, RAG, Vector DBs, FastAPI, LLM fine-tuning.

@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 from langchain_groq import ChatGroq
-from rag.retriever import retrieve_context
+from rag.retriever import retrieve_context,is_duplicate_question
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,7 +13,8 @@ def generate_technical_question(
         interview_plan : dict,
         vectorstore,
         conversation_history : list,
-        answer_scores: list
+        answer_scores: list,
+        max_retries: int = 3
 ) ->str:
     llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.7)
 
@@ -61,7 +62,31 @@ def generate_technical_question(
     - Just ask the question, nothing else
     """
 
-    response = llm.invoke(prompt)
+    # Retry loop — regenerate if duplicate detected
+    for attempt in range(max_retries):
+        response = llm.invoke(prompt)
+        question = response.content.strip()
+
+        if not is_duplicate_question(question, asked_questions):
+            return question
+
+        print(f"[DEDUP] Duplicate detected on attempt {attempt + 1}, regenerating...")
+
+        # Make prompt stricter on retry
+        prompt += f"\n\nIMPORTANT: Do NOT ask anything similar to: '{question}'. Ask about a completely different topic."
+
+    # If all retries failed, force a different topic
+    print("[DEDUP] Max retries reached, forcing topic change...")
+    fallback_prompt = f"""
+    You are a technical interviewer. All previous attempts asked about similar topics.
+    
+    Asked so far: {asked_questions}
+    Candidate skills: {interview_plan.get('strong_skills', [])}
+    
+    Pick a skill NOT covered in the questions above and ask ONE specific question about it.
+    Just the question, nothing else.
+    """
+    response = llm.invoke(fallback_prompt)
     return response.content.strip()
 
 if __name__ == "__main__":
