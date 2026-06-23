@@ -4,6 +4,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from langgraph.graph import StateGraph, END
 from graph.state import InterviewState
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import interrupt
 from agents.resume_agent import run_resume_agent
 from agents.technical_agent import generate_technical_question
 from agents.hr_agent import generate_HR_question
@@ -98,11 +100,17 @@ def hr_node(state: InterviewState) -> InterviewState:
 # ── Node 4: Evaluate answer ──
 
 def evaluate_node(state: InterviewState) -> InterviewState:
+    # PAUSE HERE — send question to human, wait for their answer
+    human_answer = interrupt({
+        "question": state["current_question"],
+        "question_type": state["current_question_type"],
+        "question_count": state["question_count"]
+    })
     print("\n[JUDGE] Evaluating Answers...")
 
     score = judge_answer(
         state["current_question"],
-        state["current_answer"],
+        human_answer,
         state["current_question_type"]
     )
 
@@ -116,6 +124,7 @@ def evaluate_node(state: InterviewState) -> InterviewState:
 
     return {
         **state,
+        "current_answer": human_answer,
         "conversation_history": new_history,
         "answer_scores": state["answer_scores"] + [score],
         "question_count": state["question_count"] + 1
@@ -197,13 +206,17 @@ def build_interview_graph():
         "followup" :"followup",
         "end" : END
     })
-
-    return graph.compile()
+    checkpointer = MemorySaver()
+    return graph.compile(checkpointer=checkpointer)
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from langgraph.types import Command
     from parsers.resume_parser import extract_text_from_pdf
 
-    resume_text = extract_text_from_pdf("sample_resume.pdf")
+    resume_text = extract_text_from_pdf("backend/sample_resume.pdf")
 
     jd_text = """
     AI Engineer role requiring LangChain, RAG, Vector DBs, FastAPI, LLM fine-tuning.
@@ -212,6 +225,8 @@ if __name__ == "__main__":
     # Build graph
     app = build_interview_graph()
 
+    # Each session needs a unique thread_id so checkpointer knows which interview to resume
+    config = {"configurable": {"thread_id": "interview_001"}}
     # Initial state
     initial_state = InterviewState(
         resume_text=resume_text,
@@ -234,20 +249,39 @@ if __name__ == "__main__":
     )
 
     print("=== INTERVIEW SIMULATION ===\n")
-    print("NOTE: In production the answer comes from voice/text input.")
-    print("For testing we simulate answers.\n")
 
-    # Simulate one full turn manually
-    state = app.invoke(initial_state)
+    # First call — runs setup + generates first question + PAUSES
+    result = app.invoke(initial_state, config=config)
 
-    print("\n[GRAPH] First question generated:")
-    print(f"Q: {state['current_question']}")
+    while True:
+        # result is an Interrupt object when paused
+        if "__interrupt__" in result:
+            interrupt_data = result["__interrupt__"][0].value
+            question = interrupt_data["question"]
+            q_type = interrupt_data["question_type"]
+            q_num = interrupt_data["question_count"] + 1
 
-    # Simulate candidate answering
-    state["current_answer"] = "I used ChromaDB with BGE embeddings to store resume chunks and retrieve relevant context for each interview question."
+            print(f"\n[Q{q_num} - {q_type.upper()}] {question}")
+            print("-" * 60)
 
-    # Continue graph from evaluate node
-    state = app.invoke(state)  
+            # Real human types their answer here
+            answer = input("Your answer: ").strip()
 
-    print(f"\n[GRAPH] Questions asked so far: {state['question_count']}")
-    print(f"[GRAPH] Scores so far: {[s['overall_score'] for s in state['answer_scores']]}")
+            if answer.lower() in ["quit", "exit"]:
+                print("\nInterview ended early.")
+                break
+
+            # Resume graph with the human's answer
+            result = app.invoke(
+                Command(resume=answer),
+                config=config
+            )
+        else:
+            # Graph reached END naturally
+            print("\n=== INTERVIEW COMPLETE ===")
+            print(f"Total questions: {result.get('question_count', 0)}")
+            scores = result.get('answer_scores', [])
+            if scores:
+                avg = sum(s['overall_score'] for s in scores) / len(scores)
+                print(f"Average score: {avg:.1f}/10")
+            break
