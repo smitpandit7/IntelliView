@@ -17,6 +17,10 @@ from graph.state import InterviewState
 from parsers.resume_parser import extract_text_from_pdf
 from report.generator import generate_report
 
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Response
+from voice.tts import text_to_speech_bytes
+from voice.stt import transcribe_audio
+
 app = FastAPI(title="AI Interview Simulator", version="1.0.0")
 
 # ── CORS — allows React frontend to call this API ──
@@ -250,6 +254,36 @@ async def get_status(session_id: str):
         "scores": [s.get("overall_score") for s in scores]
     }
 
+# ── Route 5: TTS — convert question text to audio ──
+@app.post("/voice/speak")
+async def speak_question(body: dict):
+    """FrontEnd calls this to get audio for a question."""
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="NO Text Provided")
+    
+    try:
+        audio_bytes = text_to_speech_bytes(text)
+        return Response(
+            content=audio_bytes,
+            media_type="audio.mpeg",
+            headers={"Content-Disposition": "inline; filename=question.mp3"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS failed: {str(e)}")
+    
+@app.post("/voice/transcribe")
+async def transcribe_answer(audio: UploadFile = File(...)):
+    """Frontend sends recorded audio, gets back transcript."""
+    audio_bytes = await audio.read()
+    filename    = audio.filename or "audio.webm"
+    fmt         = filename.split(".")[-1] if "." in filename else "webm"
+
+    try:
+        transcript = transcribe_audio(audio_bytes, format=fmt)
+        return {"transcript": transcript}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"STT failed: {str(e)}")
 
 # ── Health check ──
 @app.get("/health")
