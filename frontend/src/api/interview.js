@@ -32,3 +32,45 @@ export const getStatus = async (sessionId) => {
   const res = await axios.get(`${BASE}/interview/status/${sessionId}`);
   return res.data;
 };
+
+export const speakQuestion = async (text) => {
+  try {
+    // Cancel any currently playing audio first
+    if (window._currentAudio) {
+      window._currentAudio.pause();
+      window._currentAudio = null;
+    }
+
+    const res = await axios.post(
+      `${BASE}/voice/speak`,
+      { text },
+      { responseType: "blob" }
+    );
+
+    const audioBlob = new Blob([res.data], { type: "audio/mpeg" });
+    const audioUrl  = URL.createObjectURL(audioBlob);
+    const audio     = new Audio(audioUrl);
+    window._currentAudio = audio;
+
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        window._currentAudio = null;
+        resolve();
+      };
+      audio.onerror = reject;
+      audio.play();
+    });
+  } catch(err) {
+    console.error("TTS failed:", err);
+  }
+};
+
+export const transcribeAudio = async (audioBlob) => {
+  const form = new FormData();
+  form.append("audio", audioBlob, "recording.webm");
+  const res = await axios.post(`${BASE}/voice/transcribe`, form, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
+  return res.data.transcript;
+};

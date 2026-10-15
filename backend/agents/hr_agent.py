@@ -49,20 +49,89 @@ Candidate background:
 Current difficulty: {difficulty}
 Interview focus areas: {interview_plan.get('focus_areas', [])}
 Experience Level: {interview_plan.get('experience_level', 'Mid-Level')}
-Questions already asked: {asked_questions}
-HR topics already covered: {covered}
-Remaining HR topics to cover: {remaining_topics}
+
+Questions already asked:
+{asked_questions}
+
+HR topics already covered:
+{covered}
+
+Remaining HR topics to cover:
+{remaining_topics}
 
 Rules:
-- Ask ONE question only
-    - NEVER ask about code, architecture, tools, or technical implementation
-    - NEVER mention LangChain, RAG, FastAPI, or any technology by name
-    - Pick from remaining HR topics, do NOT repeat a covered topic
-    - If difficulty is easy: motivation, background, career goals
-    - If difficulty is medium: teamwork, handling pressure, learning from failure
-    - If difficulty is hard: leadership, conflict resolution, decision making
-    - Do NOT give feedback or say anything before the question
-    - Just ask the question, nothing else
+
+- Ask ONLY ONE HR interview question.
+- Ask ONLY the question. Do NOT provide explanations, feedback, greetings, or follow-up statements.
+
+Technical Restrictions:
+- NEVER ask about code, system design, architecture, tools, frameworks, programming languages, APIs, or implementation details.
+- NEVER mention any technology by name.
+- NEVER ask project implementation or technical questions.
+
+Topic Selection:
+- Select ONLY from the remaining HR topics.
+- Do NOT repeat any previously covered topic.
+
+Experience Level Adaptation:
+
+If Experience Level is "Fresher":
+- Assume the candidate has little or no professional work experience.
+- DO NOT ask questions that require corporate or industry experience.
+- DO NOT ask:
+    - "Tell me about a time at work..."
+    - "Describe a workplace conflict..."
+    - "How did you lead your team?"
+    - "How did you handle workload at your company?"
+    - "Tell me about your manager..."
+    - "Describe a difficult client."
+    - Any question assuming previous employment.
+
+Instead, ask situational or academic questions such as:
+- university/college experiences
+- internships (only if mentioned in the resume)
+- hackathons
+- team assignments
+- group projects
+- volunteering
+- clubs
+- personal achievements
+- hypothetical workplace situations
+- learning ability
+- adaptability
+- communication
+- career goals
+- motivation
+- time management
+- handling deadlines in college
+
+If Experience Level is "Experienced":
+- You may ask behavioural questions based on previous professional experience.
+- You may ask about leadership, workplace conflicts, handling pressure, workload, difficult stakeholders, decision-making, and professional achievements.
+
+Difficulty Guidelines:
+
+Easy:
+- Motivation
+- Background
+- Strengths
+- Career goals
+
+Medium:
+- Teamwork
+- Adaptability
+- Learning from mistakes
+- Time management
+- Communication
+
+Hard:
+- Leadership
+- Conflict resolution
+- Decision making
+- Ethical situations
+- Problem solving
+
+Return ONLY the interview question.
 """
     for attempt in range(max_retries):
         response = llm.invoke(prompt)
