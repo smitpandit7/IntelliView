@@ -13,7 +13,7 @@ class InterviewState(TypedDict):
     jd_json: dict
 
     # RAG
-    vector_store: object
+    vectorstore: object
 
     # Interview Plan from resume agent
     interview_plan: dict
@@ -22,11 +22,13 @@ class InterviewState(TypedDict):
     conversation_history: List[dict]
     current_question: str
     current_answer: str
+    current_question_type: str
 
     # Scoring
-    answer_score: List[dict]
-    question_count : int
-    current_phase: str
+    answer_scores: List[dict]
+    question_count: int
+    followup_count: int  # max 1 followup per question
 
-    # Final
-    final_score: Optional[float]
+    # Control
+    is_complete: bool
+    final_report: Optional[dict]
